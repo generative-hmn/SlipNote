@@ -6,7 +6,7 @@ A lightweight macOS menu bar app for quick note-taking and organization.
 
 ![macOS](https://img.shields.io/badge/macOS-12.0+-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-Proprietary-red)
 
 ## Screenshots
 
@@ -128,7 +128,9 @@ All data is stored locally:
 
 ## License
 
-MIT License - see [License.txt](License.txt)
+Source Available (Proprietary) - see [License.txt](License.txt)
+
+This software is source-available but NOT open source. Personal use is permitted. Commercial use, redistribution, and publishing derivative works are not permitted.
 
 ## Contact
 

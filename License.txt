@@ -2,6 +2,20 @@ SlipNote License Agreement
 
 Copyright (c) 2026 gamzabi@me.com. All Rights Reserved.
 
+This software is source-available but NOT open source.
+
+You MAY:
+- Download and use the software for personal, non-commercial purposes
+- View and study the source code for personal, educational purposes
+- Fork and modify for personal, non-commercial use
+- Report issues and suggest improvements
+
+You MAY NOT:
+- Use this software or its source code for commercial purposes
+- Redistribute, sell, or sublicense the software or its derivatives
+- Publish modified versions as your own work
+- Remove or alter copyright notices
+
 This software is provided "as is" without warranty of any kind, express or
 implied, including but not limited to the warranties of merchantability,
 fitness for a particular purpose and noninfringement.

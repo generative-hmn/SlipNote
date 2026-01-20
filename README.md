@@ -59,7 +59,6 @@ A lightweight macOS menu bar app for quick note-taking and organization.
 |----------|--------|
 | Cmd+Number(0-9) | Save to category |
 | Esc | Close window |
-| /query | Search notes |
 
 ### Browser
 | Shortcut | Action |

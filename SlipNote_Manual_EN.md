@@ -50,7 +50,6 @@ Open the browser window to manage your notes.
 ### Search
 
 - **Cmd+F** - Focus search field
-- **/query** - Search from quick input window
 
 ### Detail View
 

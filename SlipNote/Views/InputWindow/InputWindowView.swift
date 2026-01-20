@@ -9,18 +9,9 @@ struct InputWindowView: View {
     @EnvironmentObject var appState: AppState
     @State private var text = ""
     @State private var isShowingCategoryBar = false
-    @State private var selectedSearchIndex = 0
 
     // Cache for text when closing without saving
     private static var cachedText: String = ""
-
-    private var isSearchMode: Bool {
-        text.hasPrefix("/")
-    }
-
-    private var searchQuery: String {
-        String(text.dropFirst())
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,11 +30,6 @@ struct InputWindowView: View {
                 }
             }
 
-            // Search results (when in search mode)
-            if isSearchMode && !searchQuery.isEmpty {
-                searchResultsView
-            }
-
             // Always show category bar
             categoryBar
         }
@@ -60,12 +46,6 @@ struct InputWindowView: View {
             if isVisible {
                 appState.loadCategories()
                 restoreFromCache()
-            }
-        }
-        .onChange(of: text) { _, newValue in
-            if isSearchMode {
-                appState.search(query: searchQuery)
-                selectedSearchIndex = 0
             }
         }
     }
@@ -110,36 +90,6 @@ struct InputWindowView: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: - Search Results
-
-    private var searchResultsView: some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            if appState.searchResults.isEmpty {
-                Text("No results found", comment: "Search results empty state")
-                    .foregroundColor(.secondary)
-                    .padding()
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(appState.searchResults.prefix(10).enumerated()), id: \.element.id) { index, slip in
-                            SearchResultRow(
-                                slip: slip,
-                                category: appState.categories.first { $0.id == slip.categoryId },
-                                isSelected: index == selectedSearchIndex
-                            )
-                            .onTapGesture {
-                                selectSearchResult(slip)
-                            }
-                        }
-                    }
-                }
-                .frame(maxHeight: 300)
-            }
-        }
-    }
-
     // MARK: - Actions
 
     private func handleEscape() {
@@ -157,22 +107,6 @@ struct InputWindowView: View {
         Self.cachedText = ""  // Clear cache after saving
         isShowingCategoryBar = false
         closeWindow()
-    }
-
-    private func selectSearchResult(_ slip: Slip) {
-        appState.selectedSlip = slip
-        text = ""
-        Self.cachedText = ""
-        closeWindow()
-    }
-
-    private func moveSearchSelection(up: Bool) {
-        let maxIndex = min(appState.searchResults.count, 10) - 1
-        if up {
-            selectedSearchIndex = max(0, selectedSearchIndex - 1)
-        } else {
-            selectedSearchIndex = min(maxIndex, selectedSearchIndex + 1)
-        }
     }
 
     private func closeWindow() {
@@ -219,44 +153,6 @@ struct CategoryBubble: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Search Result Row
-
-struct SearchResultRow: View {
-    let slip: Slip
-    let category: Category?
-    let isSelected: Bool
-
-    var body: some View {
-        HStack {
-            if let cat = category, !cat.name.isEmpty {
-                Text("\(cat.id)")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .frame(width: 14, height: 14)
-                    .background(Color.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(slip.timestamp)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.secondary)
-                    Text(slip.title)
-                        .lineLimit(1)
-                }
-                Text(slip.content)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
     }
 }
 

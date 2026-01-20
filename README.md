@@ -8,6 +8,24 @@ A lightweight macOS menu bar app for quick note-taking and organization.
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+## Screenshots
+
+### Quick Input
+![Quick Input](screenshots/01_quick_input.png)
+
+### Browser
+![Browser](screenshots/02_browser.png)
+
+### Detail View
+| View Mode | Edit Mode | Version History |
+|-----------|-----------|-----------------|
+| ![Detail View](screenshots/06_detail_view.png) | ![Detail Edit](screenshots/07_detail_edit.png) | ![Version History](screenshots/08_version_history.png) |
+
+### Settings
+| Shortcuts | Categories | Data |
+|-----------|------------|------|
+| ![Shortcuts](screenshots/03_settings_shortcuts.png) | ![Categories](screenshots/04_settings_categories.png) | ![Data](screenshots/05_settings_data.png) |
+
 ## Features
 
 - **Quick Input** - Global shortcut (Cmd+Shift+N) to capture notes from anywhere

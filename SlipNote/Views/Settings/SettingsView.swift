@@ -94,6 +94,8 @@ struct SettingsView: View {
         }
         .onDisappear {
             removeKeyboardNavigation()
+            // Reset shortcut recording state when settings closes
+            settings.recordingShortcutId = nil
         }
     }
 

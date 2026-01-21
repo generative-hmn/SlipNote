@@ -459,10 +459,14 @@ struct ViewModeView: View {
                 return event
             }
 
-            // Cmd+F = Focus search field (works even in detail view)
+            // Cmd+F = Focus search field (skip when editing)
             if event.modifierFlags.contains(.command),
                let chars = event.charactersIgnoringModifiers?.lowercased(),
                chars == "f" {
+                // Don't handle Cmd+F when editing - let text editor handle it
+                if detailState.isEditing {
+                    return event
+                }
                 selectedSlipForDetail = nil
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     if let window = NSApp.keyWindow {

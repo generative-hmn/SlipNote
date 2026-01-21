@@ -166,7 +166,11 @@ struct SlipDetailView: View {
                 }
             }
 
-            if !detailState.isEditing {
+            if detailState.isEditing {
+                Text("[ESC: cancel] [⌘↩: save]")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.secondary)
+            } else {
                 Text("[⌘↩ to edit]")
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(.secondary)

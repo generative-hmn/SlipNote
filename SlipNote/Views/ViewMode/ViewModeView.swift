@@ -27,6 +27,11 @@ struct ViewModeView: View {
     // Detail view state (shared with SlipDetailView)
     @StateObject private var detailState = DetailViewState()
 
+    // NotificationCenter observer tokens for proper cleanup
+    @State private var windowObserver: NSObjectProtocol?
+    @State private var slipEditObserver: NSObjectProtocol?
+    @State private var searchFocusObserver: NSObjectProtocol?
+
     // Opacity values based on color scheme (higher for light mode)
     private var categoryBgOpacity: Double { colorScheme == .light ? 0.8 : 0.2 }
     private var categorySelectedBgOpacity: Double { colorScheme == .light ? 0.9 : 0.3 }
@@ -56,24 +61,25 @@ struct ViewModeView: View {
             setupKeyboardShortcuts()
             focusSearchField()
 
-            // Listen for window becoming key to refocus search
-            NotificationCenter.default.addObserver(
+            // Listen for window becoming key to refocus search (token-based for proper cleanup)
+            windowObserver = NotificationCenter.default.addObserver(
                 forName: NSWindow.didBecomeKeyNotification,
                 object: nil,
                 queue: .main
-            ) { [self] _ in
+            ) { [weak appState] _ in
                 // Only focus if not in detail view
+                guard appState != nil else { return }
                 if selectedSlipForDetail == nil {
                     focusSearchField()
                 }
             }
 
             // Listen for new slip creation from menu
-            NotificationCenter.default.addObserver(
+            slipEditObserver = NotificationCenter.default.addObserver(
                 forName: .openSlipInEditMode,
                 object: nil,
                 queue: .main
-            ) { [self] notification in
+            ) { notification in
                 if let slip = notification.object as? Slip {
                     openInEditMode = true
                     selectedSlipForDetail = slip
@@ -81,11 +87,11 @@ struct ViewModeView: View {
             }
 
             // Listen for focus search field notification
-            NotificationCenter.default.addObserver(
+            searchFocusObserver = NotificationCenter.default.addObserver(
                 forName: .focusSearchField,
                 object: nil,
                 queue: .main
-            ) { [self] _ in
+            ) { _ in
                 Logger.shared.info("focusSearchField notification received")
                 // Close detail view first if open
                 selectedSlipForDetail = nil
@@ -99,9 +105,19 @@ struct ViewModeView: View {
         }
         .onDisappear {
             removeKeyboardShortcuts()
-            NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
-            NotificationCenter.default.removeObserver(self, name: .openSlipInEditMode, object: nil)
-            NotificationCenter.default.removeObserver(self, name: .focusSearchField, object: nil)
+            // Remove observers using tokens for proper cleanup
+            if let observer = windowObserver {
+                NotificationCenter.default.removeObserver(observer)
+                windowObserver = nil
+            }
+            if let observer = slipEditObserver {
+                NotificationCenter.default.removeObserver(observer)
+                slipEditObserver = nil
+            }
+            if let observer = searchFocusObserver {
+                NotificationCenter.default.removeObserver(observer)
+                searchFocusObserver = nil
+            }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -202,18 +218,23 @@ struct ViewModeView: View {
     private func loadVersionsForSlip(_ slip: Slip) {
         // Load versions asynchronously to avoid blocking UI
         let slipId = slip.id
+        let currentIndex = selectedSlipIndex  // Capture current index on main thread
+
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let versions = try DatabaseService.shared.fetchVersions(for: slip)
-                DispatchQueue.main.async {
-                    // Only update if still viewing the same slip
-                    if slipId == filteredSlips[safe: selectedSlipIndex]?.id {
-                        selectedSlipVersions = versions
+                DispatchQueue.main.async { [weak appState] in
+                    // Only update if still viewing the same slip (compare IDs, not indices)
+                    guard appState != nil else { return }
+                    let currentSlips = self.filteredSlips
+                    if currentIndex < currentSlips.count && currentSlips[currentIndex].id == slipId {
+                        self.selectedSlipVersions = versions
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    selectedSlipVersions = []
+                    self.selectedSlipVersions = []
+                    Logger.shared.error("Failed to load versions: \(error.localizedDescription)")
                 }
             }
         }

@@ -237,7 +237,7 @@ struct SlipDetailView: View {
             versions = try DatabaseService.shared.fetchVersions(for: slip)
             detailState.hasVersions = !versions.isEmpty
         } catch {
-            print("Failed to load versions: \(error)")
+            Logger.shared.error("Failed to load versions: \(error.localizedDescription)")
         }
     }
 

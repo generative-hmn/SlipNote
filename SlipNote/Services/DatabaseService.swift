@@ -8,39 +8,35 @@ final class DatabaseService {
 
     private init() {}
 
-    private func log(_ message: String) {
-        NSLog("[DatabaseService] %@", message)
-    }
-
     // MARK: - Setup
 
     func setup() throws {
         let fileManager = FileManager.default
         let appDirectory = URL(fileURLWithPath: AppSettings.shared.databaseDirectoryPath)
 
-        log("Setting up database at: \(appDirectory.path)")
+        Logger.shared.debug("Setting up database at: \(appDirectory.path)")
 
         // Create directory if needed
         if !fileManager.fileExists(atPath: appDirectory.path) {
             try fileManager.createDirectory(at: appDirectory, withIntermediateDirectories: true)
-            log("Created directory: \(appDirectory.path)")
+            Logger.shared.debug("Created directory: \(appDirectory.path)")
         }
 
         let dbPath = appDirectory.appendingPathComponent("slipnote.db").path
-        log("Database path: \(dbPath)")
+        Logger.shared.debug("Database path: \(dbPath)")
 
         dbQueue = try DatabaseQueue(path: dbPath)
-        log("Database queue created successfully")
+        Logger.shared.debug("Database queue created successfully")
 
         try createTables()
         try seedDefaultCategories()
-        log("Database setup complete")
+        Logger.shared.info("Database setup complete")
     }
 
     private func createTables() throws {
-        log("createTables called")
+        Logger.shared.debug("createTables called")
         try dbQueue?.write { db in
-            NSLog("[DatabaseService] Creating tables...")
+            Logger.shared.debug("Creating tables...")
             // Categories table
             try db.create(table: "categories", ifNotExists: true) { t in
                 t.column("id", .integer).primaryKey()
@@ -54,7 +50,7 @@ final class DatabaseService {
             let columns = try db.columns(in: "categories")
             if !columns.contains(where: { $0.name == "color_hex" }) {
                 try db.execute(sql: "ALTER TABLE categories ADD COLUMN color_hex TEXT")
-                NSLog("[DatabaseService] Added color_hex column to categories")
+                Logger.shared.debug("[DatabaseService] Added color_hex column to categories")
             }
 
             // Slips table
@@ -74,7 +70,7 @@ final class DatabaseService {
             let slipColumns = try db.columns(in: "slips")
             if !slipColumns.contains(where: { $0.name == "is_pinned" }) {
                 try db.execute(sql: "ALTER TABLE slips ADD COLUMN is_pinned INTEGER DEFAULT 0")
-                NSLog("[DatabaseService] Added is_pinned column to slips")
+                Logger.shared.debug("[DatabaseService] Added is_pinned column to slips")
             }
 
             // Versions table
@@ -124,22 +120,22 @@ final class DatabaseService {
     }
 
     private func seedDefaultCategories() throws {
-        log("seedDefaultCategories called")
+        Logger.shared.debug("seedDefaultCategories called")
         try dbQueue?.write { db in
             let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM categories") ?? 0
-            NSLog("[DatabaseService] Category count: %d", count)
+            Logger.shared.debug("Category count: \(count)")
             if count == 0 {
-                NSLog("[DatabaseService] Inserting default categories...")
+                Logger.shared.debug("Inserting default categories...")
                 for category in Category.defaults {
-                    NSLog("[DatabaseService] Inserting category id=%d, name=%@", category.id, category.name)
+                    Logger.shared.debug("Inserting category id=\(category.id), name=\(category.name)")
                     try category.insert(db)
                 }
-                NSLog("[DatabaseService] Default categories inserted")
+                Logger.shared.debug("Default categories inserted")
             } else {
                 // Ensure Trash category exists (migration for existing databases)
                 let trashExists = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM categories WHERE id = ?", arguments: [Category.trashId]) ?? 0
                 if trashExists == 0 {
-                    NSLog("[DatabaseService] Adding Trash category to existing database")
+                    Logger.shared.debug("Adding Trash category to existing database")
                     let trash = Category(id: Category.trashId, name: "Trash", emoji: "🗑️", sortOrder: -1, colorHex: nil)
                     try trash.insert(db)
                 }
@@ -150,7 +146,7 @@ final class DatabaseService {
                     if let defaultCat = Category.defaults.first(where: { $0.id == category.id }) {
                         category.colorHex = defaultCat.colorHex
                         try category.update(db)
-                        NSLog("[DatabaseService] Set default color for category id=%d", category.id)
+                        Logger.shared.debug("Set default color for category id=\(category.id)")
                     }
                 }
             }
@@ -160,19 +156,19 @@ final class DatabaseService {
     // MARK: - Slips CRUD
 
     func insertSlip(_ slip: Slip) throws {
-        log("Inserting slip: id=\(slip.id), title=\(slip.title), categoryId=\(slip.categoryId)")
+        Logger.shared.debug("Inserting slip: id=\(slip.id), title=\(slip.title), categoryId=\(slip.categoryId)")
         guard let queue = dbQueue else {
-            log("ERROR: dbQueue is nil!")
+            Logger.shared.error("Database not initialized - dbQueue is nil")
             throw NSError(domain: "DatabaseService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Database not initialized"])
         }
         try queue.write { db in
             try slip.insert(db)
-            log("Slip inserted successfully")
+            Logger.shared.debug("Slip inserted successfully")
         }
     }
 
     func fetchAllSlips(categoryId: Int? = nil) throws -> [Slip] {
-        log("Fetching slips with categoryId filter: \(String(describing: categoryId))")
+        Logger.shared.debug("Fetching slips with categoryId filter: \(String(describing: categoryId))")
         let result: [Slip] = try dbQueue?.read { db in
             // Sort by: pinned first (desc), then by created_at (desc)
             var query = Slip.order(Slip.Columns.isPinned.desc, Slip.Columns.createdAt.desc)
@@ -185,7 +181,7 @@ final class DatabaseService {
             }
             return try query.fetchAll(db)
         } ?? []
-        log("Fetched \(result.count) slips")
+        Logger.shared.debug("Fetched \(result.count) slips")
         return result
     }
 
@@ -205,7 +201,7 @@ final class DatabaseService {
     }
 
     func deleteSlip(_ slip: Slip) throws {
-        try dbQueue?.write { db in
+        _ = try dbQueue?.write { db in
             try slip.delete(db)
         }
     }
@@ -229,12 +225,12 @@ final class DatabaseService {
     }
 
     func emptyTrash() throws {
-        log("Emptying trash")
+        Logger.shared.debug("Emptying trash")
         try dbQueue?.write { db in
             // Delete all slips in Trash
             try db.execute(sql: "DELETE FROM slips WHERE category_id = ?", arguments: [Category.trashId])
         }
-        log("Trash emptied successfully")
+        Logger.shared.debug("Trash emptied successfully")
     }
 
     func trashCount() throws -> Int {

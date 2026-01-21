@@ -24,8 +24,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var inputHotKey: HotKey?
     private var browseHotKey: HotKey?
     private var previousApp: NSRunningApplication?
-    private var previousInputSource: TISInputSource?
     private var backupTimer: Timer?
+
+    // TIS Input Source with proper memory management
+    // Using CFTypeRef-based approach for safer Core Foundation memory handling
+    private var previousInputSourceRef: Unmanaged<TISInputSource>?
+
+    private func captureInputSource() {
+        // Release previous reference if exists
+        previousInputSourceRef?.release()
+        // Capture new reference (TISCopyCurrentKeyboardInputSource returns retained value)
+        previousInputSourceRef = TISCopyCurrentKeyboardInputSource()
+    }
+
+    private func restoreInputSource() {
+        guard let inputSourceRef = previousInputSourceRef else { return }
+        let inputSource = inputSourceRef.takeUnretainedValue()
+        TISSelectInputSource(inputSource)
+    }
+
+    private func clearInputSource() {
+        previousInputSourceRef?.release()
+        previousInputSourceRef = nil
+    }
 
     let appState = AppState()
     private let settings = AppSettings.shared
@@ -170,23 +191,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func handleURL(_ url: URL) {
         Logger.shared.info("Handling URL: \(url.absoluteString)")
 
-        guard url.scheme == "slipnote" else { return }
+        // Validate URL scheme
+        guard url.scheme?.lowercased() == "slipnote" else {
+            Logger.shared.warning("Invalid URL scheme: \(url.scheme ?? "nil")")
+            return
+        }
 
-        let host = url.host ?? ""
+        let host = url.host?.lowercased() ?? ""
         let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let params = Dictionary(uniqueKeysWithValues: queryItems.compactMap { item -> (String, String)? in
             guard let value = item.value else { return nil }
             return (item.name, value)
         })
 
+        // Validate known hosts
+        let validHosts = ["new", "browse", "search", "input"]
+        if !host.isEmpty && !validHosts.contains(host) {
+            Logger.shared.warning("Unknown URL host: \(host)")
+            // Fall through to default behavior
+        }
+
         switch host {
         case "new":
             // slipnote://new?content=text&category=1
-            let content = params["content"] ?? ""
+            // Sanitize content - limit length to prevent abuse
+            let content = String((params["content"] ?? "").prefix(100_000))
             let categoryId = Int(params["category"] ?? "0") ?? Category.inboxId
 
+            // Validate category ID
+            let validCategoryId = (0...10).contains(categoryId) ? categoryId : Category.inboxId
+
             if !content.isEmpty {
-                appState.createSlip(content: content, categoryId: categoryId)
+                appState.createSlip(content: content, categoryId: validCategoryId)
                 Logger.shared.info("Created slip via URL scheme")
             } else {
                 // Open input window for new slip
@@ -196,14 +232,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         case "browse":
             // slipnote://browse?category=1
             if let categoryStr = params["category"], let categoryId = Int(categoryStr) {
-                appState.selectedCategoryFilter = categoryId
+                // Validate category ID
+                if (0...10).contains(categoryId) {
+                    appState.selectedCategoryFilter = categoryId
+                }
             }
             showBrowseWindow()
 
         case "search":
             // slipnote://search?query=keyword
             if let query = params["query"] {
-                appState.search(query: query)
+                // Sanitize query - limit length
+                let sanitizedQuery = String(query.prefix(1000))
+                appState.search(query: sanitizedQuery)
                 showBrowseWindow()
             }
 
@@ -223,17 +264,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let browseVisible = browseWindow?.isVisible ?? false
 
         if !inputVisible && !browseVisible {
-            // Capture input source to restore after hide
-            let inputSourceToRestore = previousInputSource
-            previousInputSource = nil
-
             NSApp.hide(nil)
 
             // Restore input source after a brief delay (after previous app becomes active)
-            if let inputSource = inputSourceToRestore {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    TISSelectInputSource(inputSource)
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.restoreInputSource()
+                self?.clearInputSource()
             }
         }
     }
@@ -390,7 +426,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                        frontApp.bundleIdentifier != Bundle.main.bundleIdentifier {
                         self.previousApp = frontApp
                         // Capture the current input source (keyboard language)
-                        self.previousInputSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
+                        self.captureInputSource()
                     }
                 }
                 self.toggleInputWindow()
@@ -410,7 +446,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     if let frontApp = NSWorkspace.shared.frontmostApplication,
                        frontApp.bundleIdentifier != Bundle.main.bundleIdentifier {
                         self.previousApp = frontApp
-                        self.previousInputSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
+                        self.captureInputSource()
                     }
                 }
                 self.toggleBrowseWindow()
@@ -528,21 +564,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Logger.shared.debug("Browse window hidden")
 
         // Force hide app since browse window is now hidden
-        let inputSourceToRestore = previousInputSource
-
         if !appState.isInputWindowVisible {
             NSApp.hide(nil)
 
             // Restore input source after hide
-            if let inputSource = inputSourceToRestore {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    TISSelectInputSource(inputSource)
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.restoreInputSource()
+                self?.clearInputSource()
             }
+        } else {
+            clearInputSource()
         }
 
         previousApp = nil
-        previousInputSource = nil
     }
 
     // MARK: - NSWindowDelegate
@@ -552,21 +586,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
               window == browseWindow else { return }
 
         // Force hide app since browse window is closing
-        let inputSourceToRestore = previousInputSource
-
         if !appState.isInputWindowVisible {
             NSApp.hide(nil)
 
             // Restore input source after hide
-            if let inputSource = inputSourceToRestore {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    TISSelectInputSource(inputSource)
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.restoreInputSource()
+                self?.clearInputSource()
             }
+        } else {
+            clearInputSource()
         }
 
         previousApp = nil
-        previousInputSource = nil
     }
 
     private func showBrowseWindow() {

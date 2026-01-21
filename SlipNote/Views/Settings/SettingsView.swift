@@ -296,7 +296,7 @@ struct CategoriesSettingsView: View {
         do {
             categories = try DatabaseService.shared.fetchCategories()
         } catch {
-            print("Failed to load categories: \(error)")
+            Logger.shared.error("Failed to load categories: \(error.localizedDescription)")
             categories = Category.defaults
         }
     }
@@ -306,7 +306,7 @@ struct CategoriesSettingsView: View {
             try DatabaseService.shared.updateCategory(category)
             appState.loadCategories()
         } catch {
-            print("Failed to save category: \(error)")
+            Logger.shared.error("Failed to save category: \(error.localizedDescription)")
         }
     }
 }
@@ -436,7 +436,7 @@ struct DataSettingsView: View {
                 showExportAlert = true
             }
         } catch {
-            print("Export failed: \(error)")
+            Logger.shared.error("Export failed: \(error.localizedDescription)")
         }
     }
 
@@ -471,7 +471,7 @@ struct DataSettingsView: View {
             do {
                 try FileManager.default.copyItem(at: dbPath, to: url)
             } catch {
-                print("Backup failed: \(error)")
+                Logger.shared.error("Backup failed: \(error.localizedDescription)")
             }
         }
     }
@@ -494,7 +494,7 @@ struct DataSettingsView: View {
                 try FileManager.default.copyItem(at: url, to: dbPath)
                 showRestartAlert = true
             } catch {
-                print("Restore failed: \(error)")
+                Logger.shared.error("Restore failed: \(error.localizedDescription)")
             }
         }
     }

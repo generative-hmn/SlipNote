@@ -11,7 +11,15 @@ final class Logger {
 
     private init() {
         // Log file in Application Support
-        let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            // Fallback to temp directory if Application Support is unavailable
+            let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("SlipNote")
+            try? FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+            fileURL = tempDirectory.appendingPathComponent("slipnote.log")
+            dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+            return
+        }
         let appDirectory = appSupportURL.appendingPathComponent("SlipNote")
 
         // Create directory if needed

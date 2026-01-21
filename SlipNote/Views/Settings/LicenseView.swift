@@ -71,9 +71,11 @@ struct LicenseView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
-                Link(destination: URL(string: url)!) {
-                    Image(systemName: "link")
-                        .font(.caption)
+                if let linkURL = URL(string: url) {
+                    Link(destination: linkURL) {
+                        Image(systemName: "link")
+                            .font(.caption)
+                    }
                 }
             }
 

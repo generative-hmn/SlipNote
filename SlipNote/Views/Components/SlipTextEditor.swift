@@ -208,6 +208,7 @@ struct DetailTextEditor: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.allowsUndo = true
+        textView.autoresizingMask = [.width]
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 6
@@ -225,6 +226,7 @@ struct DetailTextEditor: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .bezelBorder
+        scrollView.drawsBackground = true
 
         return scrollView
     }
@@ -235,8 +237,16 @@ struct DetailTextEditor: NSViewRepresentable {
         context.coordinator.onEscape = onEscape
         context.coordinator.onCommandEnter = onCommandEnter
 
-        if textView.string != text {
+        // Only update if not currently editing to prevent cursor jump and flickering
+        if !context.coordinator.isUpdating && textView.string != text {
+            context.coordinator.isUpdating = true
+            let selectedRange = textView.selectedRange()
             textView.string = text
+            // Restore cursor position if valid
+            if selectedRange.location <= text.count {
+                textView.setSelectedRange(selectedRange)
+            }
+            context.coordinator.isUpdating = false
         }
     }
 
@@ -248,6 +258,7 @@ struct DetailTextEditor: NSViewRepresentable {
         var parent: DetailTextEditor
         var onEscape: (() -> Void)?
         var onCommandEnter: (() -> Void)?
+        var isUpdating = false
 
         init(_ parent: DetailTextEditor) {
             self.parent = parent
@@ -256,10 +267,10 @@ struct DetailTextEditor: NSViewRepresentable {
         }
 
         func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
-            DispatchQueue.main.async {
-                self.parent.text = textView.string
-            }
+            guard !isUpdating, let textView = notification.object as? NSTextView else { return }
+            isUpdating = true
+            parent.text = textView.string
+            isUpdating = false
         }
     }
 }

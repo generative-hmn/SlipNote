@@ -2,10 +2,14 @@ import SwiftUI
 import Carbon.HIToolbox
 
 struct ShortcutRecorderView: View {
+    let id: String
     @Binding var shortcut: KeyboardShortcut
     @ObservedObject private var settings = AppSettings.shared
-    @State private var isRecording = false
     @State private var localMonitor: Any?
+
+    private var isRecording: Bool {
+        settings.recordingShortcutId == id
+    }
 
     var body: some View {
         Button {
@@ -37,10 +41,17 @@ struct ShortcutRecorderView: View {
     }
 
     private func startRecording() {
-        isRecording = true
-        settings.isRecordingShortcut = true
+        // Stop any other recorder first
+        if settings.recordingShortcutId != nil && settings.recordingShortcutId != id {
+            settings.recordingShortcutId = nil
+        }
+
+        settings.recordingShortcutId = id
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
+            // Only process if this recorder is still active
+            guard settings.recordingShortcutId == id else { return event }
+
             if event.type == .keyDown {
                 // Check if it has modifier keys
                 let modifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
@@ -71,8 +82,9 @@ struct ShortcutRecorderView: View {
     }
 
     private func stopRecording() {
-        isRecording = false
-        settings.isRecordingShortcut = false
+        if settings.recordingShortcutId == id {
+            settings.recordingShortcutId = nil
+        }
         if let monitor = localMonitor {
             NSEvent.removeMonitor(monitor)
             localMonitor = nil
@@ -81,6 +93,6 @@ struct ShortcutRecorderView: View {
 }
 
 #Preview {
-    ShortcutRecorderView(shortcut: .constant(.defaultInputMode))
+    ShortcutRecorderView(id: "preview", shortcut: .constant(.defaultInputMode))
         .padding()
 }

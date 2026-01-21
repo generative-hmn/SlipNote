@@ -128,8 +128,12 @@ final class AppSettings: ObservableObject {
         didSet { saveBackupInterval() }
     }
 
-    // Track if any shortcut recorder is active
-    @Published var isRecordingShortcut = false
+    // Track which shortcut recorder is active (nil = none)
+    @Published var recordingShortcutId: String? = nil
+
+    var isRecordingShortcut: Bool {
+        recordingShortcutId != nil
+    }
 
     // Track if user has seen the license
     var hasSeenLicense: Bool {

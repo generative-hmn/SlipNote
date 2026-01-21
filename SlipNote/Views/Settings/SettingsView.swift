@@ -159,7 +159,7 @@ struct ShortcutsSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    ShortcutRecorderView(shortcut: $settings.inputModeShortcut)
+                    ShortcutRecorderView(id: "inputMode", shortcut: $settings.inputModeShortcut)
                 }
                 .padding(.vertical, 4)
 
@@ -172,7 +172,7 @@ struct ShortcutsSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    ShortcutRecorderView(shortcut: $settings.browseModeShortcut)
+                    ShortcutRecorderView(id: "browseMode", shortcut: $settings.browseModeShortcut)
                 }
                 .padding(.vertical, 4)
             } header: {

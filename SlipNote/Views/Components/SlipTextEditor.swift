@@ -192,6 +192,7 @@ struct DetailTextEditor: NSViewRepresentable {
     @Binding var text: String
     var onEscape: (() -> Void)?
     var onCommandEnter: (() -> Void)?
+    var autoFocus: Bool = false
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -208,7 +209,9 @@ struct DetailTextEditor: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.allowsUndo = true
-        textView.autoresizingMask = [.width]
+        textView.autoresizingMask = [.width, .height]
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 6
@@ -227,6 +230,7 @@ struct DetailTextEditor: NSViewRepresentable {
         scrollView.autohidesScrollers = true
         scrollView.borderType = .bezelBorder
         scrollView.drawsBackground = true
+        scrollView.autoresizingMask = [.width, .height]
 
         return scrollView
     }
@@ -248,6 +252,18 @@ struct DetailTextEditor: NSViewRepresentable {
             }
             context.coordinator.isUpdating = false
         }
+
+        // Auto focus
+        if autoFocus && !context.coordinator.didFocus {
+            DispatchQueue.main.async {
+                if let window = textView.window {
+                    window.makeFirstResponder(textView)
+                    // Move cursor to end
+                    textView.setSelectedRange(NSRange(location: textView.string.count, length: 0))
+                    context.coordinator.didFocus = true
+                }
+            }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -259,6 +275,7 @@ struct DetailTextEditor: NSViewRepresentable {
         var onEscape: (() -> Void)?
         var onCommandEnter: (() -> Void)?
         var isUpdating = false
+        var didFocus = false
 
         init(_ parent: DetailTextEditor) {
             self.parent = parent

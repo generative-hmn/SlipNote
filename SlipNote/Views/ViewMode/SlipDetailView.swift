@@ -174,25 +174,13 @@ struct SlipDetailView: View {
     // MARK: - Editing View
 
     private var editingView: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            DetailTextEditor(
-                text: $editedContent,
-                onEscape: { cancelEditing() },
-                onCommandEnter: { saveChanges() }
-            )
-            .frame(minHeight: 200)
-
-            HStack {
-                Button("Cancel") {
-                    cancelEditing()
-                }
-
-                Button("Save") {
-                    saveChanges()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
+        DetailTextEditor(
+            text: $editedContent,
+            onEscape: { cancelEditing() },
+            onCommandEnter: { saveChanges() },
+            autoFocus: true
+        )
+        .frame(maxWidth: .infinity, minHeight: 200)
     }
 
     // MARK: - Version Navigator

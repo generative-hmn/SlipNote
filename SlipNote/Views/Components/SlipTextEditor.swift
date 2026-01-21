@@ -202,10 +202,11 @@ struct DetailTextEditor: NSViewRepresentable {
         textView.isRichText = false
         textView.font = NSFont.systemFont(ofSize: 16)
         textView.textColor = NSColor.labelColor
-        textView.backgroundColor = NSColor.textBackgroundColor
+        textView.backgroundColor = NSColor.clear
+        textView.drawsBackground = false
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
-        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.textContainerInset = NSSize(width: 0, height: 0)
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.allowsUndo = true
@@ -228,8 +229,8 @@ struct DetailTextEditor: NSViewRepresentable {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
-        scrollView.borderType = .bezelBorder
-        scrollView.drawsBackground = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
         scrollView.autoresizingMask = [.width, .height]
 
         return scrollView

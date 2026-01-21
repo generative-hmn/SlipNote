@@ -72,40 +72,44 @@ struct SlipDetailView: View {
             Divider()
 
             // Content area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Title (first line of content)
-                    Text(displayedTitle)
-                        .font(.system(size: 20, weight: .semibold))
-                        .textSelection(.enabled)
-
-                    // Timestamp
-                    Text("[\(slip.timestamp)]")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.secondary)
-
-                    Divider()
-
-                    // Content body (everything after first line)
-                    if detailState.isEditing {
-                        editingView
-                    } else if !displayedBody.isEmpty {
-                        Text(displayedBody)
-                            .font(.system(size: 16))
-                            .lineSpacing(8)  // ~1.5 line height
+            if detailState.isEditing {
+                // Full-screen editing mode
+                editingView
+                    .padding(20)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Title (first line of content)
+                        Text(displayedTitle)
+                            .font(.system(size: 20, weight: .semibold))
                             .textSelection(.enabled)
+
+                        // Timestamp
+                        Text("[\(slip.timestamp)]")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(.secondary)
+
+                        Divider()
+
+                        // Content body (everything after first line)
+                        if !displayedBody.isEmpty {
+                            Text(displayedBody)
+                                .font(.system(size: 16))
+                                .lineSpacing(8)  // ~1.5 line height
+                                .textSelection(.enabled)
+                        }
                     }
-                }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // Double-click detection to enter edit mode
-                    let now = Date()
-                    if now.timeIntervalSince(lastClickTime) < 0.3 && !detailState.isEditing {
-                        startEditing()
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Double-click detection to enter edit mode
+                        let now = Date()
+                        if now.timeIntervalSince(lastClickTime) < 0.3 {
+                            startEditing()
+                        }
+                        lastClickTime = now
                     }
-                    lastClickTime = now
                 }
             }
 

@@ -312,35 +312,23 @@ class DetailNSTextView: NSTextView {
             return true
         }
 
-        // Standard editing shortcuts - let them pass through to NSTextView
-        if event.modifierFlags.contains(.command) {
-            if let chars = event.charactersIgnoringModifiers?.lowercased() {
-                switch chars {
-                case "z":
-                    if event.modifierFlags.contains(.shift) {
-                        undoManager?.redo()
-                    } else {
-                        undoManager?.undo()
-                    }
-                    return true
-                case "a":
-                    selectAll(nil)
-                    return true
-                case "c":
-                    copy(nil)
-                    return true
-                case "v":
-                    paste(nil)
-                    return true
-                case "x":
-                    cut(nil)
-                    return true
-                default:
-                    break
-                }
-            }
+        // Cmd+Z - undo
+        if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "z" {
+            undoManager?.undo()
+            return true
         }
 
+        // Cmd+Shift+Z - redo
+        if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "z" {
+            undoManager?.redo()
+            return true
+        }
+
+        // All other key equivalents handled by super
         return super.performKeyEquivalent(with: event)
     }
 

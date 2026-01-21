@@ -36,7 +36,6 @@ struct SlipDetailView: View {
     @State private var currentContent: String = ""  // Track current content after saves
     @State private var versions: [Version] = []
     @State private var currentVersionIndex = 0
-    @FocusState private var isEditorFocused: Bool
     @State private var lastClickTime: Date = .distantPast
 
     private var currentCategory: Category? {
@@ -176,22 +175,21 @@ struct SlipDetailView: View {
 
     private var editingView: some View {
         VStack(alignment: .trailing, spacing: 8) {
-            TextEditor(text: $editedContent)
-                .font(.system(size: 16))
-                .lineSpacing(8)
-                .frame(minHeight: 200)
-                .focused($isEditorFocused)
+            DetailTextEditor(
+                text: $editedContent,
+                onEscape: { cancelEditing() },
+                onCommandEnter: { saveChanges() }
+            )
+            .frame(minHeight: 200)
 
             HStack {
                 Button("Cancel") {
                     cancelEditing()
                 }
-                .keyboardShortcut(.escape, modifiers: [])
 
                 Button("Save") {
                     saveChanges()
                 }
-                .keyboardShortcut(.return, modifiers: .command)
                 .buttonStyle(.borderedProminent)
             }
         }
@@ -250,7 +248,6 @@ struct SlipDetailView: View {
     private func startEditing() {
         editedContent = currentContent.isEmpty ? slip.content : currentContent
         detailState.isEditing = true
-        isEditorFocused = true
     }
 
     private func cancelEditing() {

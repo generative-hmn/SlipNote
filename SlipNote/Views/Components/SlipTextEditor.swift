@@ -185,3 +185,136 @@ class SlipNSTextView: NSTextView {
 
     override var acceptsFirstResponder: Bool { true }
 }
+
+// MARK: - Simple Text Editor for Detail View
+
+struct DetailTextEditor: NSViewRepresentable {
+    @Binding var text: String
+    var onEscape: (() -> Void)?
+    var onCommandEnter: (() -> Void)?
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        let textView = DetailNSTextView()
+
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.font = NSFont.systemFont(ofSize: 16)
+        textView.textColor = NSColor.labelColor
+        textView.backgroundColor = NSColor.textBackgroundColor
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = true
+        textView.allowsUndo = true
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 6
+        textView.defaultParagraphStyle = paragraphStyle
+        textView.typingAttributes = [
+            .font: NSFont.systemFont(ofSize: 16),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: paragraphStyle
+        ]
+
+        textView.coordinator = context.coordinator
+
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .bezelBorder
+
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? DetailNSTextView else { return }
+
+        context.coordinator.onEscape = onEscape
+        context.coordinator.onCommandEnter = onCommandEnter
+
+        if textView.string != text {
+            textView.string = text
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: DetailTextEditor
+        var onEscape: (() -> Void)?
+        var onCommandEnter: (() -> Void)?
+
+        init(_ parent: DetailTextEditor) {
+            self.parent = parent
+            self.onEscape = parent.onEscape
+            self.onCommandEnter = parent.onCommandEnter
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            DispatchQueue.main.async {
+                self.parent.text = textView.string
+            }
+        }
+    }
+}
+
+class DetailNSTextView: NSTextView {
+    weak var coordinator: DetailTextEditor.Coordinator?
+
+    override func cancelOperation(_ sender: Any?) {
+        coordinator?.onEscape?()
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // ESC
+        if event.keyCode == 53 {
+            coordinator?.onEscape?()
+            return true
+        }
+
+        // Cmd+Enter - save
+        if event.keyCode == 36 && event.modifierFlags.contains(.command) {
+            coordinator?.onCommandEnter?()
+            return true
+        }
+
+        // Standard editing shortcuts - let them pass through to NSTextView
+        if event.modifierFlags.contains(.command) {
+            if let chars = event.charactersIgnoringModifiers?.lowercased() {
+                switch chars {
+                case "z":
+                    if event.modifierFlags.contains(.shift) {
+                        undoManager?.redo()
+                    } else {
+                        undoManager?.undo()
+                    }
+                    return true
+                case "a":
+                    selectAll(nil)
+                    return true
+                case "c":
+                    copy(nil)
+                    return true
+                case "v":
+                    paste(nil)
+                    return true
+                case "x":
+                    cut(nil)
+                    return true
+                default:
+                    break
+                }
+            }
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+}

@@ -461,6 +461,42 @@ struct ViewModeView: View {
         Logger.shared.info("Copied \(slipsToCopy.count) slip(s) to clipboard")
     }
 
+    private func exportSlipsToMarkdown(_ slip: Slip) {
+        var slipsToExport: [Slip] = []
+
+        // If multiple slips are selected and clicked slip is in selection, export all selected
+        if !selectedSlipIds.isEmpty && selectedSlipIds.contains(slip.id) {
+            slipsToExport = filteredSlips.filter { selectedSlipIds.contains($0.id) }
+        } else {
+            // Otherwise export only the clicked slip
+            slipsToExport = [slip]
+        }
+
+        guard !slipsToExport.isEmpty else { return }
+
+        let markdown = generateMarkdown(for: slipsToExport)
+
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.plainText]
+
+        // Generate filename based on content
+        if slipsToExport.count == 1 {
+            let title = slipsToExport[0].title.replacingOccurrences(of: "/", with: "-")
+            savePanel.nameFieldStringValue = "\(title).md"
+        } else {
+            savePanel.nameFieldStringValue = "SlipNote_Export_\(slipsToExport.count)_slips.md"
+        }
+
+        if savePanel.runModal() == .OK, let url = savePanel.url {
+            do {
+                try markdown.write(to: url, atomically: true, encoding: .utf8)
+                Logger.shared.info("Exported \(slipsToExport.count) slip(s) to \(url.path)")
+            } catch {
+                Logger.shared.error("Failed to export: \(error.localizedDescription)")
+            }
+        }
+    }
+
     // MARK: - Keyboard & Mouse Shortcuts
 
     @State private var keyboardMonitor: Any?
@@ -903,8 +939,8 @@ struct ViewModeView: View {
                             }
                             .contentShape(Rectangle())
                             .simultaneousGesture(
-                                // Require more movement before drag starts
-                                DragGesture(minimumDistance: 15)
+                                // Require more movement before drag starts (increased for better click detection)
+                                DragGesture(minimumDistance: 25)
                             )
                             .onTapGesture {
                                 let now = Date()
@@ -1023,6 +1059,14 @@ struct ViewModeView: View {
             } else {
                 Label(String(localized: "Pin to Top"), systemImage: "pin")
             }
+        }
+
+        Divider()
+
+        Button {
+            exportSlipsToMarkdown(slip)
+        } label: {
+            Label(String(localized: "Export to Markdown"), systemImage: "square.and.arrow.up")
         }
 
         Divider()

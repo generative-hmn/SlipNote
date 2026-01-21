@@ -351,10 +351,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc private func openSettings() {
-        // Find existing settings window
-        if let settingsWindow = NSApp.windows.first(where: { $0.title == "Settings" || $0.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" }) {
+        // Find existing settings window (SwiftUI Settings windows have identifier containing "Settings")
+        if let settingsWindow = NSApp.windows.first(where: {
+            $0.identifier?.rawValue.contains("Settings") == true ||
+            $0.title == "Settings" ||
+            $0.title == String(localized: "Settings")
+        }) {
             if settingsWindow.isVisible {
-                settingsWindow.close()
+                settingsWindow.orderOut(nil)
             } else {
                 settingsWindow.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
@@ -378,6 +382,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             inputHotKey = HotKey(key: key, modifiers: inputShortcut.toHotKeyModifiers())
             inputHotKey?.keyDownHandler = { [weak self] in
                 guard let self = self else { return }
+                // Ignore hotkey while recording new shortcut in settings
+                guard !self.settings.isRecordingShortcut else { return }
                 // Capture the frontmost app and focused element BEFORE any window operations
                 if self.inputPanel == nil || !self.inputPanel!.isVisible {
                     if let frontApp = NSWorkspace.shared.frontmostApplication,
@@ -397,6 +403,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             browseHotKey = HotKey(key: key, modifiers: browseShortcut.toHotKeyModifiers())
             browseHotKey?.keyDownHandler = { [weak self] in
                 guard let self = self else { return }
+                // Ignore hotkey while recording new shortcut in settings
+                guard !self.settings.isRecordingShortcut else { return }
                 // Capture state before opening browse window
                 if self.browseWindow == nil || !self.browseWindow!.isVisible {
                     if let frontApp = NSWorkspace.shared.frontmostApplication,

@@ -17,6 +17,7 @@ enum SettingsTab: Int, CaseIterable {
 }
 
 struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
     @ObservedObject private var settings = AppSettings.shared
     @State private var selectedTab: SettingsTab = .shortcuts
@@ -24,6 +25,27 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Header with close button
+            HStack {
+                Text("Settings")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.title2)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.escape, modifiers: [])
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            Divider()
+
             // Custom tab bar
             HStack(spacing: 0) {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
@@ -42,7 +64,7 @@ struct SettingsView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.bottom, 8)
 
             Divider()

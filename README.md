@@ -41,7 +41,7 @@ A lightweight macOS menu bar app for quick note-taking and organization.
 
 ## Installation
 
-1. Download `SlipNote_v1.0.6.dmg` from Releases
+1. Download `SlipNote_v1.0.7.dmg` from Releases
 2. Open the DMG file
 3. Drag `SlipNote.app` to Applications folder
 4. Launch SlipNote from Applications

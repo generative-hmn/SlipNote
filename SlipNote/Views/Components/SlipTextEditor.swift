@@ -313,6 +313,38 @@ class DetailNSTextView: NSTextView {
             return true
         }
 
+        // Cmd+A - select all
+        if event.modifierFlags.contains(.command),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "a" {
+            selectAll(nil)
+            return true
+        }
+
+        // Cmd+V - paste
+        if event.modifierFlags.contains(.command),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "v" {
+            paste(nil)
+            return true
+        }
+
+        // Cmd+C - copy
+        if event.modifierFlags.contains(.command),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "c" {
+            copy(nil)
+            return true
+        }
+
+        // Cmd+X - cut
+        if event.modifierFlags.contains(.command),
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars == "x" {
+            cut(nil)
+            return true
+        }
+
         // Cmd+Z - undo
         if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift),
            let chars = event.charactersIgnoringModifiers?.lowercased(),

@@ -1189,10 +1189,12 @@ struct SlipCardView: View, Equatable {
 
                 Spacer()
 
-                // Version count indicator (always shown)
-                Text("v\(totalVersions + 1)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(.secondary)
+                // Version count indicator (only shown for selected slip with versions)
+                if isSelected && totalVersions > 0 {
+                    Text("v\(totalVersions + 1)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
 
                 Text(slip.timestamp)
                     .font(.system(size: 11, design: .monospaced))

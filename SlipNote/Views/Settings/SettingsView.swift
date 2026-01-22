@@ -114,6 +114,18 @@ struct SettingsView: View {
                 return event
             }
 
+            // Skip if text field or text view is focused (first responder)
+            if let firstResponder = keyWindow.firstResponder {
+                if firstResponder is NSTextView || firstResponder is NSTextField {
+                    return event
+                }
+                // NSTextField uses a field editor (NSTextView) when editing
+                if let textView = firstResponder as? NSTextView,
+                   textView.superview?.superview is NSTextField {
+                    return event
+                }
+            }
+
             // Left arrow = Previous tab
             if event.keyCode == 123 {
                 let currentIndex = selectedTab.rawValue

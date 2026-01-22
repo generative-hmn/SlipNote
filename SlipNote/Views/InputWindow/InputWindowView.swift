@@ -52,7 +52,13 @@ struct InputWindowView: View {
 
     private func restoreFromCache() {
         isShowingCategoryBar = false
-        text = Self.cachedText
+        // Use captured text from appState if available, otherwise use cache
+        if !appState.inputText.isEmpty {
+            text = appState.inputText
+            appState.inputText = ""  // Clear after using
+        } else {
+            text = Self.cachedText
+        }
     }
 
     // MARK: - Input Area

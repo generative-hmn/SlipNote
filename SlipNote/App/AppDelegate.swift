@@ -48,6 +48,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         previousInputSourceRef = nil
     }
 
+    // MARK: - Selected Text Capture
+
+    private func captureSelectedText() -> String? {
+        // Save current clipboard content
+        let pasteboard = NSPasteboard.general
+        let previousContents = pasteboard.pasteboardItems?.compactMap { item -> NSPasteboardItem? in
+            let newItem = NSPasteboardItem()
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    newItem.setData(data, forType: type)
+                }
+            }
+            return newItem
+        }
+
+        // Clear clipboard
+        pasteboard.clearContents()
+
+        // Simulate Cmd+C to copy selected text
+        let source = CGEventSource(stateID: .hidSystemState)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true)  // 'c' key
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        keyUp?.post(tap: .cghidEventTap)
+
+        // Wait for clipboard to update
+        Thread.sleep(forTimeInterval: 0.05)
+
+        // Get the copied text
+        let copiedText = pasteboard.string(forType: .string)
+
+        // Restore previous clipboard content
+        pasteboard.clearContents()
+        if let items = previousContents, !items.isEmpty {
+            pasteboard.writeObjects(items)
+        }
+
+        return copiedText
+    }
+
     let appState = AppState()
     private let settings = AppSettings.shared
 
@@ -337,7 +379,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // If browser window is visible, create new slip there
         if let window = browseWindow, window.isVisible {
             let categoryId = appState.selectedCategoryFilter ?? Category.inboxId
-            let newSlip = Slip(content: "New Slip\n", categoryId: categoryId)
+            let newSlip = Slip(content: "", categoryId: categoryId)
 
             do {
                 try DatabaseService.shared.insertSlip(newSlip)
@@ -427,6 +469,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                         self.previousApp = frontApp
                         // Capture the current input source (keyboard language)
                         self.captureInputSource()
+                        // Capture selected text from the previous app
+                        if let selectedText = self.captureSelectedText(), !selectedText.isEmpty {
+                            self.appState.inputText = selectedText
+                        }
                     }
                 }
                 self.toggleInputWindow()

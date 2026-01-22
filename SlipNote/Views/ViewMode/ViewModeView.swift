@@ -336,7 +336,7 @@ struct ViewModeView: View {
     private func createNewSlip() {
         // Create a new empty slip in the current category (or Inbox)
         let categoryId = appState.selectedCategoryFilter ?? Category.inboxId
-        let newSlip = Slip(content: "New Slip\n", categoryId: categoryId)
+        let newSlip = Slip(content: "", categoryId: categoryId)
 
         do {
             try DatabaseService.shared.insertSlip(newSlip)

@@ -121,6 +121,8 @@ struct SlipDetailView: View {
         .onAppear {
             loadVersions()
             editedContent = slip.content
+            currentContent = slip.content
+            currentVersionIndex = 0
             // Register callbacks
             detailState.onStartEdit = { [self] in
                 startEditing()
@@ -132,6 +134,14 @@ struct SlipDetailView: View {
             if startInEditMode {
                 startEditing()
             }
+        }
+        .onChange(of: slip.id) { _, _ in
+            // Reset state when slip changes
+            loadVersions()
+            editedContent = slip.content
+            currentContent = slip.content
+            currentVersionIndex = 0
+            detailState.isEditing = false
         }
         .onDisappear {
             detailState.reset()

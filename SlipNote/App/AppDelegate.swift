@@ -539,9 +539,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func showInputWindow() {
         Logger.shared.event("showInputWindow")
 
-        // Close browse window if open (mutually exclusive)
+        // Close browse window if open (mutually exclusive, don't restore focus since we're opening input window)
         if let window = browseWindow, window.isVisible {
-            hideBrowseWindow()
+            hideBrowseWindow(restoreFocus: false)
         }
 
         // Restore activation policy if it was set to prohibited
@@ -624,24 +624,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    private func hideBrowseWindow() {
+    private func hideBrowseWindow(restoreFocus: Bool = true) {
         browseWindow?.orderOut(nil)
         Logger.shared.debug("Browse window hidden")
 
-        // Force hide app since browse window is now hidden
-        if !appState.isInputWindowVisible {
-            NSApp.hide(nil)
+        if restoreFocus {
+            // Force hide app since browse window is now hidden
+            if !appState.isInputWindowVisible {
+                NSApp.hide(nil)
 
-            // Restore input source after hide
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.restoreInputSource()
-                self?.clearInputSource()
+                // Restore input source after hide
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    self?.restoreInputSource()
+                    self?.clearInputSource()
+                }
+            } else {
+                clearInputSource()
             }
-        } else {
-            clearInputSource()
-        }
 
-        previousApp = nil
+            previousApp = nil
+        }
     }
 
     // MARK: - NSWindowDelegate

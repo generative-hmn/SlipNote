@@ -1117,6 +1117,7 @@ struct SlipCardView: View, Equatable {
     let versionIndex: Int
     let totalVersions: Int
     let categoryColor: Color
+    let brightCategoryColor: Color  // 100% brightness version for selection border
 
     init(slip: Slip, category: Category?, isSelected: Bool, versionContent: String? = nil, versionIndex: Int = 0, totalVersions: Int = 0) {
         self.slip = slip
@@ -1126,6 +1127,34 @@ struct SlipCardView: View, Equatable {
         self.versionIndex = versionIndex
         self.totalVersions = totalVersions
         self.categoryColor = category?.color ?? Color.accentColor
+
+        // Create 100% brightness version for selection border
+        if let colorHex = category?.colorHex, !colorHex.isEmpty {
+            // Parse hex to RGB
+            var hexSanitized = colorHex.trimmingCharacters(in: .whitespacesAndNewlines)
+            hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+            if hexSanitized.count == 6 {
+                var rgbValue: UInt64 = 0
+                Scanner(string: hexSanitized).scanHexInt64(&rgbValue)
+                let r = CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0
+                let g = CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0
+                let b = CGFloat(rgbValue & 0x0000FF) / 255.0
+
+                // Create NSColor and convert to HSB
+                let nsColor = NSColor(red: r, green: g, blue: b, alpha: 1.0)
+                var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+                if let rgbColor = nsColor.usingColorSpace(.sRGB) {
+                    rgbColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+                    self.brightCategoryColor = Color(NSColor(hue: hue, saturation: saturation, brightness: 1.0, alpha: 1.0))
+                } else {
+                    self.brightCategoryColor = Color.accentColor
+                }
+            } else {
+                self.brightCategoryColor = Color.accentColor
+            }
+        } else {
+            self.brightCategoryColor = Color.accentColor
+        }
     }
 
     static func == (lhs: SlipCardView, rhs: SlipCardView) -> Bool {
@@ -1219,7 +1248,7 @@ struct SlipCardView: View, Equatable {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(isSelected ? categoryColor : Color.clear, lineWidth: 2)
+                .stroke(isSelected ? brightCategoryColor : Color.clear, lineWidth: 2)
         )
     }
 }

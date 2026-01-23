@@ -142,10 +142,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             name: Notification.Name("closeInputWindow"),
             object: nil
         )
+
+        // Listen for hide browse window notification (from ESC double-tap)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleHideBrowseWindow),
+            name: Notification.Name("hideBrowseWindow"),
+            object: nil
+        )
     }
 
     @objc private func handleCloseInputWindow() {
         hideInputWindow()
+    }
+
+    @objc private func handleHideBrowseWindow() {
+        hideBrowseWindow()
     }
 
     private func setupLocalKeyMonitor() {
@@ -516,7 +528,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Input Window
 
     private func toggleInputWindow() {
-        if let panel = inputPanel, panel.isVisible {
+        // Check both isVisible AND isOnActiveSpace (for hidesOnDeactivate windows)
+        if let panel = inputPanel, panel.isVisible, panel.isOnActiveSpace, NSApp.isActive {
             hideInputWindow()
         } else {
             showInputWindow()
@@ -525,6 +538,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func showInputWindow() {
         Logger.shared.event("showInputWindow")
+
+        // Close browse window if open (mutually exclusive)
+        if let window = browseWindow, window.isVisible {
+            hideBrowseWindow()
+        }
 
         // Restore activation policy if it was set to prohibited
         applyAppMode()
@@ -551,7 +569,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             panel.hasShadow = false  // Use SwiftUI shadow instead
             panel.isMovableByWindowBackground = true  // Enable dragging
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            panel.hidesOnDeactivate = false
+            panel.hidesOnDeactivate = true
             panel.isReleasedWhenClosed = false
 
             // Center on screen
@@ -598,7 +616,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func toggleBrowseWindow() {
         Logger.shared.event("toggleBrowseWindow")
-        if let window = browseWindow, window.isVisible {
+        // Check both isVisible AND isOnActiveSpace (for hidesOnDeactivate windows)
+        if let window = browseWindow, window.isVisible, window.isOnActiveSpace, NSApp.isActive {
             hideBrowseWindow()
         } else {
             showBrowseWindow()
@@ -661,7 +680,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 .environmentObject(appState)
 
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 700, height: 550),
+                contentRect: NSRect(x: 0, y: 0, width: 805, height: 550),
                 styleMask: [.titled, .closable, .resizable, .miniaturizable],
                 backing: .buffered,
                 defer: false
@@ -670,6 +689,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.title = "SlipNote"
             window.isReleasedWhenClosed = false
             window.minSize = NSSize(width: 600, height: 400)
+            window.level = .floating  // Always on top
+            window.hidesOnDeactivate = true  // Hide when other app becomes active
 
             // Center on screen
             if let screen = NSScreen.main {

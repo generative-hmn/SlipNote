@@ -302,6 +302,10 @@ struct CategoriesSettingsView: View {
         .onAppear {
             loadCategories()
         }
+        .onDisappear {
+            // Close color panel when leaving categories tab
+            NSColorPanel.shared.close()
+        }
     }
 
     private func loadCategories() {
@@ -526,101 +530,23 @@ struct DataSettingsView: View {
 
 struct CategoryColorPicker: View {
     @Binding var selectedColor: String?
-    @State private var showingPopover = false
-    @State private var customColor: Color = .blue
+    @State private var pickerColor: Color = .accentColor
 
     var body: some View {
-        Button {
-            showingPopover.toggle()
-        } label: {
-            Circle()
-                .fill(selectedColor.flatMap { Color(hex: $0) } ?? Color.gray.opacity(0.3))
-                .frame(width: 20, height: 20)
-                .overlay(
-                    Circle()
-                        .stroke(Color.primary.opacity(0.2), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showingPopover, arrowEdge: .bottom) {
-            VStack(spacing: 12) {
-                Text("Choose Color")
-                    .font(.headline)
-
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 8), count: 5), spacing: 8) {
-                    // Clear color option
-                    Button {
-                        selectedColor = nil
-                        showingPopover = false
-                    } label: {
-                        Circle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.secondary)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(selectedColor == nil ? Color.primary : Color.clear, lineWidth: 2)
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    // Preset colors
-                    ForEach(Category.presetColors, id: \.self) { colorHex in
-                        Button {
-                            selectedColor = colorHex
-                            showingPopover = false
-                        } label: {
-                            Circle()
-                                .fill(Color(hex: colorHex) ?? Color.gray)
-                                .frame(width: 24, height: 24)
-                                .overlay(
-                                    Circle()
-                                        .stroke(selectedColor == colorHex ? Color.primary : Color.clear, lineWidth: 2)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                Divider()
-
-                // Custom color picker
-                HStack {
-                    Text("Custom:")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    ColorPicker("", selection: $customColor, supportsOpacity: false)
-                        .labelsHidden()
-                        .onChange(of: customColor) { _, newColor in
-                            if let hex = newColor.toHex() {
-                                selectedColor = hex
-                            }
-                        }
-
-                    Button("Apply") {
-                        if let hex = customColor.toHex() {
-                            selectedColor = hex
-                            showingPopover = false
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+        ColorPicker("", selection: $pickerColor, supportsOpacity: false)
+            .labelsHidden()
+            .frame(width: 28, height: 28)
+            .onChange(of: pickerColor) { _, newColor in
+                if let hex = newColor.toHex() {
+                    selectedColor = hex
                 }
             }
-            .padding()
-            .frame(width: 200)
             .onAppear {
-                // Initialize custom color from current selection
+                // Initialize picker color from current selection
                 if let hex = selectedColor, let color = Color(hex: hex) {
-                    customColor = color
+                    pickerColor = color
                 }
             }
-        }
     }
 }
 

@@ -36,6 +36,11 @@ struct InputWindowView: View {
         .background(Color(NSColor.windowBackgroundColor).opacity(0.66))
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                .padding(2)
+        )
         .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
         .frame(minWidth: 600)
         .onAppear {
